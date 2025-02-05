@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import streamlit as st
-import pdfkit  # <--- ADDED import for pdfkit
 
 # Streamlit app setup
 st.set_page_config(layout="wide")
@@ -11,9 +10,6 @@ st.title("Statistical Analysis of Meal Photo Queues")
 # File upload for yesterday's data and last week's data
 uploaded_file_yesterday = st.file_uploader("Upload Yesterday's CSV File", type="csv")
 uploaded_file_last_week = st.file_uploader("Upload Last Week's CSV File", type="csv")
-
-# Create a placeholder container at the top for the PDF download button
-pdf_button_placeholder = st.container()
 
 if uploaded_file_yesterday and uploaded_file_last_week:
     # Read the uploaded CSVs into DataFrames
@@ -65,8 +61,8 @@ if uploaded_file_yesterday and uploaded_file_last_week:
         ci_95 = stats.norm.interval(0.95, loc=mean_val, scale=se) if sample_size > 1 else (np.nan, np.nan)
         
         return {
-            "Mean": round(mean_val, 2),
-            "Median": round(median_val, 2),
+            "Mean": mean_val,
+            "Median": median_val,
             "Sample Size (n)": sample_size,
             "80% CI": (round(ci_80[0], 2), round(ci_80[1], 2)),
             "90% CI": (round(ci_90[0], 2), round(ci_90[1], 2)),
@@ -78,22 +74,22 @@ if uploaded_file_yesterday and uploaded_file_last_week:
     stats_yesterday_review = calculate_statistics(df_yesterday['Review Duration Minutes'].dropna())
     stats_last_week_access = calculate_statistics(df_last_week['Access Duration Seconds'].dropna())
     stats_last_week_review = calculate_statistics(df_last_week['Review Duration Minutes'].dropna())
-    
+
     # Create a summary table for yesterday's data
     st.subheader("Yesterday's Data Summary")
     yesterday_table = pd.DataFrame({
         "Metric": ["Mean", "Median", "Sample Size (n)", "80% CI", "90% CI", "95% CI"],
         "Access Duration (s)": [
-            f"{stats_yesterday_access['Mean']:.2f}",
-            f"{stats_yesterday_access['Median']:.2f}",
+            stats_yesterday_access["Mean"],
+            stats_yesterday_access["Median"],
             stats_yesterday_access["Sample Size (n)"],
             f"{stats_yesterday_access['80% CI'][0]} - {stats_yesterday_access['80% CI'][1]}",
             f"{stats_yesterday_access['90% CI'][0]} - {stats_yesterday_access['90% CI'][1]}",
             f"{stats_yesterday_access['95% CI'][0]} - {stats_yesterday_access['95% CI'][1]}"
         ],
         "Review Duration (min)": [
-            f"{stats_yesterday_review['Mean']:.2f}",
-            f"{stats_yesterday_review['Median']:.2f}",
+            stats_yesterday_review["Mean"],
+            stats_yesterday_review["Median"],
             stats_yesterday_review["Sample Size (n)"],
             f"{stats_yesterday_review['80% CI'][0]} - {stats_yesterday_review['80% CI'][1]}",
             f"{stats_yesterday_review['90% CI'][0]} - {stats_yesterday_review['90% CI'][1]}",
@@ -116,11 +112,11 @@ if uploaded_file_yesterday and uploaded_file_last_week:
     diff_review = calculate_differences(stats_yesterday_review, stats_last_week_review)
 
     # Add up/down arrows to difference table
-    def format_difference(value, opposite=False):
+    def format_difference(value):
         if value > 0:
-            return f"<span style='color: {'green' if opposite else 'red'};'>&uarr; {value:.2f}</span>"
-        elif value < 0 :
-            return f"<span style='color: {'red' if opposite else 'green'}';'>&darr; {abs(value):.2f}</span>"
+            return f"<span style='color: red;'>&uarr; {value:.2f}</span>"
+        elif value < 0:
+            return f"<span style='color: green;'>&darr; {abs(value):.2f}</span>"
         else:
             return f"<span>{value:.2f}</span>"
 
@@ -143,8 +139,8 @@ if uploaded_file_yesterday and uploaded_file_last_week:
       </tr>
       <tr>
           <td>Sample Size Difference</td>
-          <td>{format_difference(diff_access["Sample Size Difference"], True)}</td>
-          <td>{format_difference(diff_review["Sample Size Difference"], True)}</td>
+          <td>{format_difference(diff_access["Sample Size Difference"])}</td>
+          <td>{format_difference(diff_review["Sample Size Difference"])}</td>
       </tr>
     </table>
     """
@@ -265,43 +261,6 @@ if uploaded_file_yesterday and uploaded_file_last_week:
         index=False
     )
     st.markdown(outliers2_html, unsafe_allow_html=True)
-
-    # --- ADDED BLOCK FOR PDF DOWNLOAD ---
-    # Combine all tables/statistics into a single HTML string
-    all_tables_html = f"""
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        {styles_html_content}
-    </head>
-    <body>
-        <h2>Yesterday's Data Summary</h2>
-        {yesterday_table.to_html(index=False)}
-
-        <h2>Difference Between Yesterday and Last Week</h2>
-        {difference_table_html}
-
-        <h2>Outliers (Review Duration &ge; 5 min)</h2>
-        {outliers_html}
-
-        <h2>Outliers (Access Duration &ge; 1.5 min)</h2>
-        {outliers2_html}
-    </body>
-    </html>
-    """
-
-    # Generate PDF from this HTML
-    pdf_file = pdfkit.from_string(all_tables_html, False)
-
-    # Render the download button at the top
-    with pdf_button_placeholder:
-        # Streamlit download button
-        st.download_button(
-            label="Download PDF",
-            data=pdf_file,
-            file_name="meal_photo_queues_analysis.pdf",
-            mime="application/pdf"
-        )
 
 else:
     st.warning("Please upload both CSV files to proceed.")
