@@ -61,8 +61,8 @@ if uploaded_file_yesterday and uploaded_file_last_week:
         ci_95 = stats.norm.interval(0.95, loc=mean_val, scale=se) if sample_size > 1 else (np.nan, np.nan)
         
         return {
-            "Mean": mean_val,
-            "Median": median_val,
+            "Mean": round(mean_val, 2),
+            "Median": round(median_val, 2),
             "Sample Size (n)": sample_size,
             "80% CI": (round(ci_80[0], 2), round(ci_80[1], 2)),
             "90% CI": (round(ci_90[0], 2), round(ci_90[1], 2)),
@@ -74,22 +74,22 @@ if uploaded_file_yesterday and uploaded_file_last_week:
     stats_yesterday_review = calculate_statistics(df_yesterday['Review Duration Minutes'].dropna())
     stats_last_week_access = calculate_statistics(df_last_week['Access Duration Seconds'].dropna())
     stats_last_week_review = calculate_statistics(df_last_week['Review Duration Minutes'].dropna())
-
+    
     # Create a summary table for yesterday's data
     st.subheader("Yesterday's Data Summary")
     yesterday_table = pd.DataFrame({
         "Metric": ["Mean", "Median", "Sample Size (n)", "80% CI", "90% CI", "95% CI"],
         "Access Duration (s)": [
-            stats_yesterday_access["Mean"],
-            stats_yesterday_access["Median"],
+            f"{stats_yesterday_access['Mean']:.2f}",
+            f"{stats_yesterday_access['Median']:.2f}",
             stats_yesterday_access["Sample Size (n)"],
             f"{stats_yesterday_access['80% CI'][0]} - {stats_yesterday_access['80% CI'][1]}",
             f"{stats_yesterday_access['90% CI'][0]} - {stats_yesterday_access['90% CI'][1]}",
             f"{stats_yesterday_access['95% CI'][0]} - {stats_yesterday_access['95% CI'][1]}"
         ],
         "Review Duration (min)": [
-            stats_yesterday_review["Mean"],
-            stats_yesterday_review["Median"],
+            f"{stats_yesterday_review['Mean']:.2f}",
+            f"{stats_yesterday_review['Median']:.2f}",
             stats_yesterday_review["Sample Size (n)"],
             f"{stats_yesterday_review['80% CI'][0]} - {stats_yesterday_review['80% CI'][1]}",
             f"{stats_yesterday_review['90% CI'][0]} - {stats_yesterday_review['90% CI'][1]}",
@@ -112,11 +112,11 @@ if uploaded_file_yesterday and uploaded_file_last_week:
     diff_review = calculate_differences(stats_yesterday_review, stats_last_week_review)
 
     # Add up/down arrows to difference table
-    def format_difference(value):
+    def format_difference(value, opposite=False):
         if value > 0:
-            return f"<span style='color: red;'>&uarr; {value:.2f}</span>"
-        elif value < 0:
-            return f"<span style='color: green;'>&darr; {abs(value):.2f}</span>"
+            return f"<span style='color: {'green' if opposite else 'red'};'>&uarr; {value:.2f}</span>"
+        elif value < 0 :
+            return f"<span style='color: {'red' if opposite else 'green'}';'>&darr; {abs(value):.2f}</span>"
         else:
             return f"<span>{value:.2f}</span>"
 
@@ -139,8 +139,8 @@ if uploaded_file_yesterday and uploaded_file_last_week:
       </tr>
       <tr>
           <td>Sample Size Difference</td>
-          <td>{format_difference(diff_access["Sample Size Difference"])}</td>
-          <td>{format_difference(diff_review["Sample Size Difference"])}</td>
+          <td>{format_difference(diff_access["Sample Size Difference"], True)}</td>
+          <td>{format_difference(diff_review["Sample Size Difference"], True)}</td>
       </tr>
     </table>
     """
